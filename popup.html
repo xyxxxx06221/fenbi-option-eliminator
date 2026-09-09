@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>粉笔选项排除器</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main>
+      <div class="title-row">
+        <div>
+          <h1>选项排除器</h1>
+          <p>粉笔网页版做题辅助</p>
+        </div>
+        <label class="switch" aria-label="开启选项排除功能">
+          <input id="enabled" type="checkbox">
+          <span></span>
+        </label>
+      </div>
+      <div class="tip">
+        <strong>使用方法</strong>
+        <p>点击 A/B/C/D 前的 × 排除选项；再点 ↶ 恢复。</p>
+        <p>也可以按住 <kbd>Alt</kbd>（Mac 为 <kbd>Option</kbd>）点击选项。</p>
+      </div>
+      <div class="tip marker-tip">
+        <strong>题干标记</strong>
+        <p>选中题干文字，即可使用高亮、下划线、删除线或清除标记。</p>
+      </div>
+      <p class="privacy">仅修改页面显示，不读取账号信息，也不会自动提交答案。</p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
