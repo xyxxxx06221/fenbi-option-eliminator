@@ -20,6 +20,7 @@
   let markerFrame = null;
   let pendingRange = null;
   let annotations = [];
+  let nextAnnotationId = 1;
 
   function directText(element) {
     const clone = element.cloneNode(true);
@@ -109,6 +110,7 @@
     pendingRange = null;
     document.querySelector(".fenbi-marker-layer")?.remove();
     document.querySelector(".fenbi-marker-toolbar")?.remove();
+    document.querySelector(".fenbi-marker-delete-popover")?.remove();
   }
 
   function scan() {
@@ -184,12 +186,13 @@
       range.startContainer.isConnected && range.endContainer.isConnected
     );
 
-    annotations.forEach(({ range, kind }) => {
+    annotations.forEach(({ range, kind, id }) => {
       Array.from(range.getClientRects()).forEach((rect) => {
         if (rect.width <= 1 || rect.height <= 1) return;
         const segment = document.createElement("span");
         segment.className = "fenbi-marker-segment";
         segment.dataset.kind = kind;
+        segment.dataset.annotationId = String(id);
         segment.style.left = `${rect.left}px`;
         segment.style.top = `${rect.top}px`;
         segment.style.width = `${rect.width}px`;
@@ -199,31 +202,12 @@
     });
   }
 
-  function rangesOverlap(first, second) {
-    try {
-      // The constant names describe the other range first. START_TO_END
-      // compares this range's end with the other range's start, while
-      // END_TO_START compares this range's start with the other's end.
-      const firstEndsBeforeSecond =
-        first.compareBoundaryPoints(Range.START_TO_END, second) <= 0;
-      const firstStartsAfterSecond =
-        first.compareBoundaryPoints(Range.END_TO_START, second) >= 0;
-      return !firstEndsBeforeSecond && !firstStartsAfterSecond;
-    } catch {
-      return false;
-    }
-  }
-
   function applyMarker(kind) {
     if (!pendingRange || !isMarkableRange(pendingRange)) return;
-    if (kind === "clear") {
-      annotations = annotations.filter(({ range }) => !rangesOverlap(range, pendingRange));
-      showToast("已清除所选文字的标记");
-    } else {
-      annotations.push({ range: pendingRange.cloneRange(), kind });
-      const names = { highlight: "高亮", underline: "下划线", strike: "删除线" };
-      showToast(`已添加${names[kind]}`);
-    }
+    if (!["highlight", "underline", "strike"].includes(kind)) return;
+    annotations.push({ id: nextAnnotationId++, range: pendingRange.cloneRange(), kind });
+    const names = { highlight: "高亮", underline: "下划线", strike: "删除线" };
+    showToast(`已添加${names[kind]}`);
     window.getSelection()?.removeAllRanges();
     pendingRange = null;
     hideMarkerToolbar();
@@ -242,8 +226,6 @@
       <button type="button" data-action="highlight" title="荧光高亮">高亮</button>
       <button type="button" data-action="underline" title="添加下划线">下划线</button>
       <button type="button" data-action="strike" title="添加删除线">删除线</button>
-      <span class="fenbi-marker-divider" aria-hidden="true"></span>
-      <button type="button" data-action="clear" title="清除所选文字上的标记">清除</button>
     `;
     toolbar.addEventListener("pointerdown", (event) => {
       event.preventDefault();
@@ -261,6 +243,52 @@
 
   function hideMarkerToolbar() {
     document.querySelector(".fenbi-marker-toolbar")?.classList.remove("is-visible");
+  }
+
+  function annotationAtPoint(x, y) {
+    for (let index = annotations.length - 1; index >= 0; index -= 1) {
+      const annotation = annotations[index];
+      const hit = Array.from(annotation.range.getClientRects()).some((rect) =>
+        x >= rect.left - 2 && x <= rect.right + 2 &&
+        y >= rect.top - 2 && y <= rect.bottom + 2
+      );
+      if (hit) return annotation;
+    }
+    return null;
+  }
+
+  function hideDeletePopover() {
+    document.querySelector(".fenbi-marker-delete-popover")?.classList.remove("is-visible");
+  }
+
+  function showDeletePopover(annotation, x, y) {
+    let popover = document.querySelector(".fenbi-marker-delete-popover");
+    if (!popover) {
+      popover = document.createElement("button");
+      popover.type = "button";
+      popover.className = "fenbi-marker-delete-popover";
+      popover.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      });
+      popover.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const id = Number(popover.dataset.annotationId);
+        annotations = annotations.filter((item) => item.id !== id);
+        hideDeletePopover();
+        renderAnnotations();
+        showToast("已删除标记");
+      });
+      document.documentElement.appendChild(popover);
+    }
+
+    const names = { highlight: "高亮", underline: "下划线", strike: "删除线" };
+    popover.dataset.annotationId = String(annotation.id);
+    popover.textContent = `删除${names[annotation.kind]}`;
+    popover.style.left = `${Math.min(window.innerWidth - 58, Math.max(58, x))}px`;
+    popover.style.top = `${Math.max(10, y - 12)}px`;
+    popover.classList.add("is-visible");
   }
 
   function showMarkerToolbarForSelection() {
@@ -308,10 +336,23 @@
 
   document.addEventListener("pointerdown", (event) => {
     if (!event.target.closest?.(".fenbi-marker-toolbar")) hideMarkerToolbar();
+    if (!event.target.closest?.(".fenbi-marker-delete-popover")) hideDeletePopover();
+  }, true);
+
+  document.addEventListener("click", (event) => {
+    if (!enabled || event.altKey ||
+        event.target.closest?.(`.${BUTTON_CLASS}, .fenbi-marker-toolbar, .fenbi-marker-delete-popover`)) {
+      return;
+    }
+    const selection = window.getSelection();
+    if (selection && !selection.isCollapsed) return;
+    const annotation = annotationAtPoint(event.clientX, event.clientY);
+    if (annotation) showDeletePopover(annotation, event.clientX, event.clientY);
   }, true);
 
   window.addEventListener("scroll", () => {
     hideMarkerToolbar();
+    hideDeletePopover();
     scheduleMarkerRender();
   }, true);
   window.addEventListener("resize", scheduleMarkerRender);
@@ -335,7 +376,7 @@
   new MutationObserver((mutations) => {
     const pageChanged = mutations.some(({ target }) =>
       !elementForNode(target)?.closest(
-        ".fenbi-marker-layer, .fenbi-marker-toolbar, .fenbi-eliminator-toast"
+        ".fenbi-marker-layer, .fenbi-marker-toolbar, .fenbi-marker-delete-popover, .fenbi-eliminator-toast"
       )
     );
     if (!pageChanged) return;
