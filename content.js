@@ -201,8 +201,13 @@
 
   function rangesOverlap(first, second) {
     try {
-      const firstEndsBeforeSecond = first.compareBoundaryPoints(Range.END_TO_START, second) <= 0;
-      const firstStartsAfterSecond = first.compareBoundaryPoints(Range.START_TO_END, second) >= 0;
+      // The constant names describe the other range first. START_TO_END
+      // compares this range's end with the other range's start, while
+      // END_TO_START compares this range's start with the other's end.
+      const firstEndsBeforeSecond =
+        first.compareBoundaryPoints(Range.START_TO_END, second) <= 0;
+      const firstStartsAfterSecond =
+        first.compareBoundaryPoints(Range.END_TO_START, second) >= 0;
       return !firstEndsBeforeSecond && !firstStartsAfterSecond;
     } catch {
       return false;
