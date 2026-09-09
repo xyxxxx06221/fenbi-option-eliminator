@@ -164,5 +164,29 @@
 .fenbi-marker-toolbar button[data-action="highlight"] { background: rgba(255, 221, 64, 0.3); }
 .fenbi-marker-toolbar button[data-action="underline"] { text-decoration: underline 2px #ef6a52; }
 .fenbi-marker-toolbar button[data-action="strike"] { text-decoration: line-through 2px #ef6a52; }
-.fenbi-marker-toolbar .fenbi-marker-divider { width: 1px; height: 18px; background: #e1e4e9; }
-.fenbi-marker-toolbar button[data-action="clear"] { color: #8a929e; }
+.fenbi-marker-delete-popover {
+  appearance: none;
+  position: fixed;
+  z-index: 2147483647;
+  display: none;
+  min-width: 92px;
+  height: 34px;
+  padding: 0 12px;
+  transform: translate(-50%, -100%);
+  border: 1px solid rgba(224, 66, 51, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.98);
+  color: #e04a3b;
+  box-shadow: 0 8px 28px rgba(20, 28, 40, 0.18);
+  font: 13px/32px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.fenbi-marker-delete-popover.is-visible { display: block; }
+.fenbi-marker-delete-popover:hover,
+.fenbi-marker-delete-popover:focus-visible {
+  border-color: rgba(224, 66, 51, 0.42);
+  background: #fff4f2;
+  outline: none;
+}
