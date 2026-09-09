@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "粉笔选项排除器",
+  "version": "1.1.0",
+  "description": "在粉笔网页版排除选项，并为题干添加高亮、下划线和删除线。",
+  "permissions": ["storage"],
+  "host_permissions": ["*://*.fenbi.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["*://*.fenbi.com/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "粉笔选项排除器",
+    "default_popup": "popup.html"
+  }
+}
